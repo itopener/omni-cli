@@ -1,6 +1,7 @@
 package schema
 
 import (
+	"encoding/json"
 	"testing"
 
 	"omni-cli/internal/conn"
@@ -52,6 +53,52 @@ func TestBuildFixedNoDriver(t *testing.T) {
 			t.Errorf("Build(false).Fixed 不应包含 driver")
 		}
 	}
+}
+
+func TestCommandSchemaJSONParamKeysLowercase(t *testing.T) {
+	s, err := Build(false)
+	if err != nil {
+		t.Fatalf("Build(false) 意外错误: %v", err)
+	}
+	data, err := json.Marshal(s)
+	if err != nil {
+		t.Fatalf("Marshal 意外错误: %v", err)
+	}
+	var top map[string]any
+	if err := json.Unmarshal(data, &top); err != nil {
+		t.Fatalf("Unmarshal 意外错误: %v", err)
+	}
+	pbt, ok := top["params_by_type"].(map[string]any)
+	if !ok {
+		t.Fatalf("params_by_type 类型 = %T, 期望 map", top["params_by_type"])
+	}
+	fields, ok := pbt["tcp"].([]any)
+	if !ok || len(fields) == 0 {
+		t.Fatalf("params_by_type[\"tcp\"] 应为非空数组, 实际 %#v", pbt["tcp"])
+	}
+	first, ok := fields[0].(map[string]any)
+	if !ok {
+		t.Fatalf("参数字段类型 = %T, 期望 map", fields[0])
+	}
+	for _, k := range []string{"name", "required", "description"} {
+		if _, ok := first[k]; !ok {
+			t.Errorf("参数字段缺少 JSON key %q。实际 keys: %v", k, mapKeys(first))
+		}
+	}
+	for _, k := range []string{"Name", "Required", "Desc"} {
+		if _, ok := first[k]; ok {
+			t.Errorf("参数字段 JSON key %q 应为小写", k)
+		}
+	}
+}
+
+// mapKeys 提取 map 的 key 列表，便于错误信息定位。
+func mapKeys(m map[string]any) []string {
+	out := make([]string, 0, len(m))
+	for k := range m {
+		out = append(out, k)
+	}
+	return out
 }
 
 func TestBuildParamsByType(t *testing.T) {

@@ -23,11 +23,11 @@ const (
 // ParamField 描述连接方式的一个参数字段。
 type ParamField struct {
 	// Name 字段名，与 params 的 key 一致。
-	Name string
+	Name string `json:"name"`
 	// Desc 字段说明，用于 --help 与 config schema。
-	Desc string
+	Desc string `json:"description"`
 	// Required 是否为必填字段。
-	Required bool
+	Required bool `json:"required"`
 }
 
 // Resolver 是连接方式的解析策略，也是本包唯一的策略缝。

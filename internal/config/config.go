@@ -64,11 +64,14 @@ func Load(path string) (*Config, error) {
 	return &cfg, nil
 }
 
-// Save 把配置序列化为 YAML 并写入文件，权限 0600。
+// Save 把配置序列化为 YAML 并写入文件，权限 0600；父目录不存在时自动创建（0700）。
 func Save(path string, cfg *Config) error {
 	data, err := yaml.Marshal(cfg)
 	if err != nil {
 		return fmt.Errorf("序列化配置: %w", err)
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		return fmt.Errorf("创建配置目录 %s: %w", filepath.Dir(path), err)
 	}
 	if err := os.WriteFile(path, data, 0600); err != nil {
 		return fmt.Errorf("写入配置 %s: %w", path, err)

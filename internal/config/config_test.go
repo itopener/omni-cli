@@ -194,6 +194,17 @@ func TestValidateUnknownTypeErrors(t *testing.T) {
 	}
 }
 
+func TestSaveCreatesParentDir(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "nested", "dir", "config.yaml")
+	cfg := &Config{Version: 1}
+	if err := Save(path, cfg); err != nil {
+		t.Fatalf("Save 到不存在目录 %s 意外错误: %v", path, err)
+	}
+	if _, err := os.Stat(path); err != nil {
+		t.Fatalf("Save 后文件应存在: %v", err)
+	}
+}
+
 func TestSaveRoundTrip(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "config.yaml")
 	orig := &Config{
