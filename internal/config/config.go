@@ -27,11 +27,17 @@ type Config struct {
 
 // Entry 是一条连接配置。Key + Env 复合唯一定位；Type 决定 params 字段集。
 type Entry struct {
-	Key    string         `yaml:"key"`
-	Env    string         `yaml:"env"`
-	Type   conn.ConnType  `yaml:"type"`
-	Driver string         `yaml:"driver"`
-	Params map[string]any `yaml:"params"`
+	Key      string         `yaml:"key"`
+	Env      string         `yaml:"env"`
+	Type     conn.ConnType  `yaml:"type"`
+	Driver   string         `yaml:"driver"`
+	ReadOnly *bool          `yaml:"readonly"`
+	Params   map[string]any `yaml:"params"`
+}
+
+// IsReadOnly 报告该条目是否为只读连接。ReadOnly 为 nil 时按默认 true 处理。
+func (e Entry) IsReadOnly() bool {
+	return e.ReadOnly == nil || *e.ReadOnly
 }
 
 // envVarPattern 匹配 ${VAR} 形式的占位符，VAR 为合法环境变量名。

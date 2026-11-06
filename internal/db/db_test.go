@@ -132,6 +132,31 @@ func TestIsKnownDriver(t *testing.T) {
 	}
 }
 
+func TestIsWriteStatement(t *testing.T) {
+	tests := []struct {
+		name string
+		sql  string
+		want bool
+	}{
+		{name: "SELECT", sql: "SELECT 1", want: false},
+		{name: "前导空白 select", sql: "  select 1", want: false},
+		{name: "SHOW TABLES", sql: "SHOW TABLES", want: false},
+		{name: "INSERT", sql: "INSERT INTO t VALUES(1)", want: true},
+		{name: "前导空白 update", sql: "  update t set x=1", want: true},
+		{name: "DROP", sql: "DROP TABLE t", want: true},
+		{name: "空串", sql: "", want: false},
+		{name: "纯空白", sql: "   ", want: false},
+		{name: "行注释保守判写", sql: "-- comment", want: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := IsWriteStatement(tt.sql); got != tt.want {
+				t.Errorf("IsWriteStatement(%q) = %v, 期望 %v", tt.sql, got, tt.want)
+			}
+		})
+	}
+}
+
 // TestNormalizeRow 回归：扫描得到的 []byte 归一化为 string，避免 JSON 输出 base64；nil 保持 nil。
 func TestNormalizeRow(t *testing.T) {
 	tests := []struct {

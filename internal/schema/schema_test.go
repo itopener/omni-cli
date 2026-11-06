@@ -22,7 +22,7 @@ func TestBuildFixedWithDriver(t *testing.T) {
 		t.Fatalf("Build(true) 意外错误: %v", err)
 	}
 	gotNames := names(got.Fixed)
-	wantNames := []string{"key", "env", "type", "driver"}
+	wantNames := []string{"key", "env", "type", "driver", "readonly"}
 	if len(gotNames) != len(wantNames) {
 		t.Fatalf("Build(true).Fixed 名称 = %v, 期望 %v", gotNames, wantNames)
 	}
@@ -39,7 +39,7 @@ func TestBuildFixedNoDriver(t *testing.T) {
 		t.Fatalf("Build(false) 意外错误: %v", err)
 	}
 	gotNames := names(got.Fixed)
-	wantNames := []string{"key", "env", "type"}
+	wantNames := []string{"key", "env", "type", "readonly"}
 	if len(gotNames) != len(wantNames) {
 		t.Fatalf("Build(false).Fixed 名称 = %v, 期望 %v", gotNames, wantNames)
 	}
@@ -52,6 +52,26 @@ func TestBuildFixedNoDriver(t *testing.T) {
 		if name == "driver" {
 			t.Errorf("Build(false).Fixed 不应包含 driver")
 		}
+	}
+}
+
+// TestBuildFixedContainsReadonly 回归：Fixed 必须包含 readonly 字段（只读保护，默认 true）。
+func TestBuildFixedContainsReadonly(t *testing.T) {
+	got, err := Build(true)
+	if err != nil {
+		t.Fatalf("Build(true) 意外错误: %v", err)
+	}
+	found := false
+	for _, f := range got.Fixed {
+		if f.Name == "readonly" {
+			found = true
+			if f.Required {
+				t.Errorf("readonly 字段 Required 应为 false")
+			}
+		}
+	}
+	if !found {
+		t.Errorf("Build(true).Fixed 应包含 readonly 字段")
 	}
 }
 

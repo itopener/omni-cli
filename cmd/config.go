@@ -145,6 +145,7 @@ func runConfigPath(cmd *cobra.Command) error {
 func newConfigAddCmd() *cobra.Command {
 	var key, env, typ, driver string
 	var params []string
+	var readonly bool
 	cmd := &cobra.Command{
 		Use:   "add <db|redis>",
 		Short: "新增一条连接配置",
@@ -152,26 +153,28 @@ func newConfigAddCmd() *cobra.Command {
 
 位置参数为命令类型：db 或 redis。--key + --env 在同一类型内复合唯一，重复时报错。
 db 需 --driver（mysql | postgres）；redis 不需要 driver。
---type 为连接方式（v1 仅 tcp，默认 tcp）；其余连接字段用可重复的 --param k=v 传入。`,
+--type 为连接方式（v1 仅 tcp，默认 tcp）；其余连接字段用可重复的 --param k=v 传入。
+--readonly 为只读保护（默认 true，写操作被拦截；设为 false 允许写）。`,
 		Example: `  omni-cli config add db --key orders --env dev --driver mysql \
     --param host=127.0.0.1 --param port=3306 --param user=root \
     --param password='${DEV_DB_PASS}' --param database=orders
   omni-cli config add redis --key cache --env dev --param host=127.0.0.1 --param port=6379`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runConfigAdd(cmd, args[0], key, env, typ, driver, params)
+			return runConfigAdd(cmd, args[0], key, env, typ, driver, readonly, params)
 		},
 	}
 	cmd.Flags().StringVarP(&key, "key", "k", "", "连接 key（必填）")
 	cmd.Flags().StringVarP(&env, "env", "e", "", "环境名（必填）")
 	cmd.Flags().StringVar(&typ, "type", string(conn.ConnTypeTCP), "连接方式（v1 仅 tcp）")
 	cmd.Flags().StringVar(&driver, "driver", "", "数据库驱动：mysql | postgres（仅 db）")
+	cmd.Flags().BoolVar(&readonly, "readonly", true, "只读保护（默认 true；false 允许写）")
 	cmd.Flags().StringArrayVar(&params, "param", nil, "连接参数 k=v（可重复）")
 	return cmd
 }
 
 // runConfigAdd 校验参数后向对应段追加一条 entry 并写回。
-func runConfigAdd(cmd *cobra.Command, section, key, env, typ, driver string, params []string) error {
+func runConfigAdd(cmd *cobra.Command, section, key, env, typ, driver string, readonly bool, params []string) error {
 	if key == "" {
 		return fmt.Errorf("缺少 --key，例如 omni-cli config add %s --key orders --env dev", section)
 	}
@@ -186,7 +189,7 @@ func runConfigAdd(cmd *cobra.Command, section, key, env, typ, driver string, par
 	if err != nil {
 		return err
 	}
-	entry := config.Entry{Key: key, Env: env, Type: connType, Driver: driver, Params: paramMap}
+	entry := config.Entry{Key: key, Env: env, Type: connType, Driver: driver, ReadOnly: &readonly, Params: paramMap}
 	if err := validateDriverForSection(section, &entry); err != nil {
 		return err
 	}
@@ -216,29 +219,33 @@ func runConfigAdd(cmd *cobra.Command, section, key, env, typ, driver string, par
 func newConfigSetCmd() *cobra.Command {
 	var key, env, typ, driver string
 	var params []string
+	var readonly bool
 	cmd := &cobra.Command{
 		Use:   "set <db|redis>",
 		Short: "覆盖指定条目的字段",
-		Long: `按 key+env 定位一条配置，覆盖 --type / --driver / --param 指定的字段，写回文件。
+		Long: `按 key+env 定位一条配置，覆盖 --type / --driver / --readonly / --param 指定的字段，写回文件。
 
-未提供的字段保持不变；--param 只覆盖给定的 key，其余 params 保留。`,
+未提供的字段保持不变；--param 只覆盖给定的 key，其余 params 保留。
+--readonly 仅在显式传入时生效（--readonly=true|false）。`,
 		Example: `  omni-cli config set db --key orders --env dev --driver postgres
+  omni-cli config set db --key orders --env dev --readonly=false
   omni-cli config set db --key orders --env dev --param password='${NEW_DB_PASS}'`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runConfigSet(cmd, args[0], key, env, typ, driver, params)
+			return runConfigSet(cmd, args[0], key, env, typ, driver, readonly, params)
 		},
 	}
 	cmd.Flags().StringVarP(&key, "key", "k", "", "连接 key（必填）")
 	cmd.Flags().StringVarP(&env, "env", "e", "", "环境名（必填）")
 	cmd.Flags().StringVar(&typ, "type", "", "连接方式（v1 仅 tcp；省略则不变）")
 	cmd.Flags().StringVar(&driver, "driver", "", "数据库驱动：mysql | postgres（仅 db；省略则不变）")
+	cmd.Flags().BoolVar(&readonly, "readonly", true, "只读保护（显式传入 --readonly=true|false 才生效）")
 	cmd.Flags().StringArrayVar(&params, "param", nil, "连接参数 k=v（可重复，只覆盖给定 key）")
 	return cmd
 }
 
 // runConfigSet 定位条目并覆盖指定字段后写回。
-func runConfigSet(cmd *cobra.Command, section, key, env, typ, driver string, params []string) error {
+func runConfigSet(cmd *cobra.Command, section, key, env, typ, driver string, readonly bool, params []string) error {
 	if key == "" {
 		return fmt.Errorf("缺少 --key，例如 omni-cli config set %s --key orders --env dev", section)
 	}
@@ -267,6 +274,9 @@ func runConfigSet(cmd *cobra.Command, section, key, env, typ, driver string, par
 	}
 	if driver != "" {
 		e.Driver = driver
+	}
+	if cmd.Flags().Changed("readonly") {
+		e.ReadOnly = &readonly
 	}
 	if len(params) > 0 {
 		pm, err := parseParams(params)
@@ -385,7 +395,7 @@ func newConfigListCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:     "list",
 		Short:   "列出全部连接配置",
-		Long:    `列出配置中全部条目（db 与 redis），以对齐表格输出 TYPE/KEY/ENV/DRIVER。`,
+		Long:    `列出配置中全部条目（db 与 redis），以对齐表格输出 TYPE/KEY/ENV/DRIVER/READONLY。`,
 		Example: `  omni-cli config list`,
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -402,16 +412,16 @@ func runConfigList(cmd *cobra.Command) error {
 	}
 	rows := [][]any{}
 	for _, e := range cfg.DB {
-		rows = append(rows, []any{sectionDB, e.Key, e.Env, e.Driver})
+		rows = append(rows, []any{sectionDB, e.Key, e.Env, e.Driver, e.IsReadOnly()})
 	}
 	for _, e := range cfg.Redis {
-		rows = append(rows, []any{sectionRedis, e.Key, e.Env, ""})
+		rows = append(rows, []any{sectionRedis, e.Key, e.Env, "", e.IsReadOnly()})
 	}
 	if len(rows) == 0 {
 		fmt.Fprintln(cmd.OutOrStdout(), "配置为空。请先添加：omni-cli config add db --key ... --env ...")
 		return nil
 	}
-	fmt.Fprintln(cmd.OutOrStdout(), output.Table(&db.Result{Columns: []string{"TYPE", "KEY", "ENV", "DRIVER"}, Rows: rows}))
+	fmt.Fprintln(cmd.OutOrStdout(), output.Table(&db.Result{Columns: []string{"TYPE", "KEY", "ENV", "DRIVER", "READONLY"}, Rows: rows}))
 	return nil
 }
 
@@ -563,13 +573,14 @@ func parseParams(params []string) (map[string]any, error) {
 	return out, nil
 }
 
-// entryJSON 把 entry 渲染为小写 key 的 map（params 打码）；db 含 driver。
+// entryJSON 把 entry 渲染为小写 key 的 map（params 打码）；db 含 driver，均含 readonly。
 func entryJSON(section string, e *config.Entry) map[string]any {
 	m := map[string]any{
-		"key":    e.Key,
-		"env":    e.Env,
-		"type":   string(e.Type),
-		"params": maskParams(e.Params),
+		"key":      e.Key,
+		"env":      e.Env,
+		"type":     string(e.Type),
+		"readonly": e.IsReadOnly(),
+		"params":   maskParams(e.Params),
 	}
 	if section == sectionDB {
 		m["driver"] = e.Driver

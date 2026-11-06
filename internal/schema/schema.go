@@ -12,10 +12,11 @@ import (
 
 // 固定项字段名，集中定义避免魔法值散落。
 const (
-	fieldKey    = "key"
-	fieldEnv    = "env"
-	fieldType   = "type"
-	fieldDriver = "driver"
+	fieldKey      = "key"
+	fieldEnv      = "env"
+	fieldType     = "type"
+	fieldDriver   = "driver"
+	fieldReadOnly = "readonly"
 )
 
 // Field 描述一个固定项字段。
@@ -41,6 +42,7 @@ func Build(hasDriver bool) (*CommandSchema, error) {
 	if hasDriver {
 		fixed = append(fixed, Field{Name: fieldDriver, Desc: "数据库驱动（mysql | postgres）", Required: true})
 	}
+	fixed = append(fixed, Field{Name: fieldReadOnly, Desc: "默认 true，只读保护", Required: false})
 
 	params := make(map[conn.ConnType][]conn.ParamField, len(conn.SupportedTypes()))
 	for _, typ := range conn.SupportedTypes() {

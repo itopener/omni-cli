@@ -231,6 +231,27 @@ func TestSaveCreatesParentDir(t *testing.T) {
 	}
 }
 
+func TestEntryIsReadOnly(t *testing.T) {
+	yes := true
+	no := false
+	tests := []struct {
+		name string
+		e    Entry
+		want bool
+	}{
+		{name: "nil 默认只读", e: Entry{ReadOnly: nil}, want: true},
+		{name: "显式 false 可写", e: Entry{ReadOnly: &no}, want: false},
+		{name: "显式 true 只读", e: Entry{ReadOnly: &yes}, want: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.e.IsReadOnly(); got != tt.want {
+				t.Errorf("IsReadOnly() = %v, 期望 %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestSaveRoundTrip(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "config.yaml")
 	orig := &Config{

@@ -65,6 +65,9 @@ func runRedis(cmd *cobra.Command, env, key, format, timeout string, args []strin
 	if err != nil {
 		return err
 	}
+	if entry.IsReadOnly() && redis.IsWriteCommand(args) {
+		return fmt.Errorf("只读连接禁止写操作；如需写请先执行 config set redis --key %s --env %s --readonly=false", entry.Key, entry.Env)
+	}
 	tcp, err := resolveTCP(entry)
 	if err != nil {
 		return err

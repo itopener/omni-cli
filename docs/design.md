@@ -66,6 +66,7 @@ db:
     env: dev
     type: tcp                 # 连接方式，决定 params 字段集
     driver: mysql             # db 专属：mysql | postgres
+    readonly: true            # 只读保护，默认 true；写操作需设为 false
     params:                   # type 决定的连接字段
       host: 127.0.0.1
       port: 3306
@@ -98,7 +99,7 @@ redis:
 每条 entry 分两层：
 
 - **固定项**：跨类型统一的字段，typed 结构体承接。
-  - 所有类型：`key` / `env` / `type`
+  - 所有类型：`key` / `env` / `type` / `readonly`（bool，**默认 `true`**）
   - 命令类型专属：`db` 有 `driver`（mysql | postgres）；`redis` 无
 - **params**：连接字段，**由 `type` 决定字段集**。
   - `tcp`：`host` / `port` / `user` / `password` / `database`（db）或 `db`（redis）
@@ -119,6 +120,17 @@ redis:
 - `type` 是连接方式判别符，v1 只认 `tcp`（可省略，默认 `tcp`），其它报错并列出支持类型。
 - `${VAR}` 在加载时插值；变量未设置报错，不静默换空串。
 - `config init` 生成模板并 `chmod 0600`；所有打印配置的命令把 `password` / `token` 打码。
+
+## 只读保护
+
+每条 entry 有 `readonly` 固定项（bool，**默认 `true`**）。只读时拦截写操作：
+
+- **db**：只允许读语句（首关键字白名单 `SELECT` / `SHOW` / `DESCRIBE` / `DESC` / `EXPLAIN`）；其它（INSERT/UPDATE/DELETE/DDL 等）报错「只读连接禁止写操作，需设 `readonly: false`」。
+- **redis**：只允许读命令白名单（`GET`/`MGET`/`HGET*`/`LRANGE`/`SMEMBERS`/`ZRANGE*`/`EXISTS`/`TTL`/`SCAN`/`KEYS` 等）；白名单外的命令（`SET`/`DEL`/`EVAL`/`FLUSHALL` 等）拦截。
+- **默认拒绝**：未列出的语句/命令一律按写处理，宁可误拦不可漏放。
+- 多语句 SQL 由驱动默认禁用（go-sql-driver `multiStatements=false`、pgx 单语句），不会绕过首关键字检查。
+
+要写数据：`config set db --key orders --env dev --readonly=false`（或 `config add ... --readonly=false`）。
 
 ## 命令
 
@@ -158,7 +170,7 @@ omni-cli config path
 
 ### config 子命令说明
 
-- 固定项走显式 flag：`--key` / `--env` / `--type` / `--driver`。
+- 固定项走显式 flag：`--key` / `--env` / `--type` / `--driver` / `--readonly`（bool，默认 `true`）。
 - 连接字段走可重复的 `--param k=v`（不同 `type` 字段不同，flag 无法静态枚举）。
 - `--param password='${VAR}'`：单引号防 shell 展开；存 `${VAR}`，加载时插值。
 - `get` / `list` / `show`：只读，敏感项打码。

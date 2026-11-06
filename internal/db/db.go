@@ -12,6 +12,7 @@ import (
 	"net"
 	"net/url"
 	"strconv"
+	"strings"
 
 	"github.com/go-sql-driver/mysql"
 	// pgx 顶层包不会自动注册 driver，此处空白导入 stdlib 使 sql.Open("pgx", dsn) 可解析。
@@ -49,6 +50,35 @@ func IsKnownDriver(d Driver) bool {
 		return true
 	}
 	return false
+}
+
+// readOnlyStatements 是只读 SQL 的首词白名单，集中定义避免魔法值散落。
+var readOnlyStatements = map[string]bool{
+	"SELECT":   true,
+	"SHOW":     true,
+	"DESCRIBE": true,
+	"DESC":     true,
+	"EXPLAIN":  true,
+}
+
+// IsWriteStatement 按首词判断 SQL 是否为写操作。
+//
+// 去掉前导空白后取第一个空白分隔的词并转大写；不在只读白名单内一律视为写
+// （含空首词以外的注释、DDL、DML 等），空/纯空白 SQL 返回 false（无可执行内容）。
+func IsWriteStatement(sql string) bool {
+	first := firstToken(strings.ToUpper(strings.TrimSpace(sql)))
+	if first == "" {
+		return false
+	}
+	return !readOnlyStatements[first]
+}
+
+// firstToken 返回 s 的第一个空白分隔词；s 为空返回空串。
+func firstToken(s string) string {
+	if idx := strings.IndexAny(s, " \t\r\n"); idx >= 0 {
+		return s[:idx]
+	}
+	return s
 }
 
 // unknownDriverError 构造面向 AI 的未知驱动错误，列出所有合法选项。

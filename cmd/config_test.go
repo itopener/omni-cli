@@ -130,6 +130,34 @@ func TestConfigInitCreatesAndSkips(t *testing.T) {
 	}
 }
 
+// TestConfigAddReadonlyDefaults 回归：add 默认 readonly=true；--readonly=false 显式存储 false。
+func TestConfigAddReadonlyDefaults(t *testing.T) {
+	path := setTestConfig(t)
+	if _, err := runConfigCmd(t, "add", "db", "--key", "orders", "--env", "dev", "--driver", "mysql",
+		"--param", "host=127.0.0.1", "--param", "port=3306"); err != nil {
+		t.Fatalf("add 意外错误: %v", err)
+	}
+	cfg, err := config.Load(path)
+	if err != nil {
+		t.Fatalf("Load 意外错误: %v", err)
+	}
+	if got := cfg.DB[0].ReadOnly; got == nil || !*got {
+		t.Errorf("默认 add 的 ReadOnly 应为 true，实际 %v", got)
+	}
+
+	if _, err := runConfigCmd(t, "add", "redis", "--key", "cache", "--env", "dev",
+		"--readonly=false", "--param", "host=127.0.0.1", "--param", "port=6379"); err != nil {
+		t.Fatalf("add --readonly=false 意外错误: %v", err)
+	}
+	cfg, err = config.Load(path)
+	if err != nil {
+		t.Fatalf("Load 意外错误: %v", err)
+	}
+	if got := cfg.Redis[0].ReadOnly; got == nil || *got {
+		t.Errorf("--readonly=false 的 ReadOnly 应为 false，实际 %v", got)
+	}
+}
+
 func TestConfigAddThenGetMasksSecret(t *testing.T) {
 	setTestConfig(t)
 	if _, err := runConfigCmd(t, "add", "db", "--key", "orders", "--env", "dev",

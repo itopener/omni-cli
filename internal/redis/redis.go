@@ -9,11 +9,37 @@ import (
 	"fmt"
 	"net"
 	"strconv"
+	"strings"
 
 	goredis "github.com/redis/go-redis/v9"
 
 	"omni-cli/internal/conn"
 )
+
+// readOnlyCommands 是只读 redis 命令白名单，集中定义避免魔法值散落。
+var readOnlyCommands = map[string]bool{
+	"GET": true, "MGET": true, "GETRANGE": true, "STRLEN": true,
+	"EXISTS": true, "TYPE": true, "TTL": true, "PTTL": true,
+	"KEYS": true, "SCAN": true,
+	"HGET": true, "HGETALL": true, "HMGET": true, "HKEYS": true,
+	"HVALS": true, "HLEN": true, "HEXISTS": true, "HSCAN": true, "HSTRLEN": true,
+	"LRANGE": true, "LINDEX": true, "LLEN": true, "LPOS": true,
+	"SMEMBERS": true, "SISMEMBER": true, "SCARD": true, "SRANDMEMBER": true, "SSCAN": true,
+	"ZRANGE": true, "ZRANGEBYSCORE": true, "ZRANGEBYLEX": true, "ZREVRANGE": true,
+	"ZCARD": true, "ZSCORE": true, "ZRANK": true, "ZREVRANK": true,
+	"ZCOUNT": true, "ZSCAN": true, "ZLEXCOUNT": true,
+	"PFCOUNT": true, "DBSIZE": true, "INFO": true, "PING": true, "ECHO": true,
+}
+
+// IsWriteCommand 按命令名判断 redis 命令是否为写操作。
+//
+// 首参转大写后不在只读白名单内一律视为写；空参数返回 false。
+func IsWriteCommand(args []string) bool {
+	if len(args) == 0 {
+		return false
+	}
+	return !readOnlyCommands[strings.ToUpper(args[0])]
+}
 
 // Options 把直连参数转为 go-redis 的 Options。
 //

@@ -25,6 +25,28 @@ func TestOptions(t *testing.T) {
 	}
 }
 
+func TestIsWriteCommand(t *testing.T) {
+	tests := []struct {
+		name string
+		args []string
+		want bool
+	}{
+		{name: "GET", args: []string{"GET", "k"}, want: false},
+		{name: "小写 get", args: []string{"get", "k"}, want: false},
+		{name: "SET", args: []string{"SET", "k", "v"}, want: true},
+		{name: "DEL", args: []string{"DEL", "k"}, want: true},
+		{name: "EVAL", args: []string{"EVAL", "..."}, want: true},
+		{name: "空参数", args: []string{}, want: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := IsWriteCommand(tt.args); got != tt.want {
+				t.Errorf("IsWriteCommand(%v) = %v, 期望 %v", tt.args, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestOptionsEmptyPassword(t *testing.T) {
 	got, err := Options(&conn.TCPParams{Host: "h", Port: 6379})
 	if err != nil {
