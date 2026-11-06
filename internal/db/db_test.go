@@ -157,6 +157,16 @@ func TestIsWriteStatement(t *testing.T) {
 	}
 }
 
+// TestIsWriteStatementMultiStatement 回归：多语句 SQL 只按首关键字分类。
+//
+// 首关键字 SELECT 判读；尾随的 DROP 由驱动默认禁用多语句兜底
+// （go-sql-driver multiStatements=false、pgx 单语句），不会绕过首关键字检查。
+func TestIsWriteStatementMultiStatement(t *testing.T) {
+	if got := IsWriteStatement("SELECT 1; DROP TABLE t"); got {
+		t.Errorf("IsWriteStatement(%q) = true，期望 false（首关键字 SELECT）", "SELECT 1; DROP TABLE t")
+	}
+}
+
 // TestNormalizeRow 回归：扫描得到的 []byte 归一化为 string，避免 JSON 输出 base64；nil 保持 nil。
 func TestNormalizeRow(t *testing.T) {
 	tests := []struct {
