@@ -132,10 +132,29 @@ func Query(ctx context.Context, d Driver, p *conn.TCPParams, query string) (*Res
 		if err := rows.Scan(ptrs...); err != nil {
 			return nil, fmt.Errorf("扫描行失败: %w", err)
 		}
+		normalizeRow(vals)
 		res.Rows = append(res.Rows, vals)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("遍历结果失败: %w", err)
 	}
 	return res, nil
+}
+
+// normalizeRow 把行值中的 []byte 归一化为 string，nil 保持 nil。
+//
+// go-sql-driver 把字符串列扫描为 []byte，encoding/json 会把 []byte 编码成
+// base64。这里统一转 string，保证 JSON 输出与表格一致。
+func normalizeRow(vals []any) {
+	for i, v := range vals {
+		b, ok := v.([]byte)
+		if !ok {
+			continue
+		}
+		if b == nil {
+			vals[i] = nil
+			continue
+		}
+		vals[i] = string(b)
+	}
 }

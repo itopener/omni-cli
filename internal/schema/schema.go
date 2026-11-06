@@ -21,7 +21,7 @@ const (
 // Field 描述一个固定项字段。
 type Field struct {
 	Name     string `json:"name"`
-	Desc     string `json:"desc"`
+	Desc     string `json:"description"`
 	Required bool   `json:"required"`
 }
 

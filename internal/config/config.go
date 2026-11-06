@@ -2,7 +2,8 @@
 //
 // 配置层级：命令类型（db / redis）→ 条目列表；每条 entry 由 key + env 复合唯一定位。
 // 固定项 key / env / type（db 另加 driver）用 typed 结构体承接，连接字段进 params，
-// 字段集由 type 决定。加载时 params 里的字符串值做 ${VAR} 环境变量插值，未设置即报错。
+// 字段集由 type 决定。Load 会对 params 里的字符串值做 ${VAR} 环境变量插值，未设置即报错；
+// LoadRaw 保留 ${VAR} 字面量，供 add/set/remove 等改写命令使用。
 package config
 
 import (
@@ -47,6 +48,38 @@ func DefaultPath() (string, error) {
 
 // Load 读取并校验配置文件：解析 YAML → 归一化（默认 type、${VAR} 插值）→ 校验。
 func Load(path string) (*Config, error) {
+	cfg, err := read(path)
+	if err != nil {
+		return nil, err
+	}
+	applyDefaults(cfg)
+	if err := interpolateAll(cfg); err != nil {
+		return nil, fmt.Errorf("配置 %s 归一化失败: %w", path, err)
+	}
+	if err := validate(cfg); err != nil {
+		return nil, fmt.Errorf("配置 %s 校验失败: %w", path, err)
+	}
+	return cfg, nil
+}
+
+// LoadRaw 读取并校验配置文件，但不做 ${VAR} 插值。
+//
+// 供 add/set/remove 等改写命令使用：保留 params 里的 ${VAR} 字面量，
+// 避免 Save 把插值后的明文 secret 写回文件。默认 type 填充与校验与 Load 一致。
+func LoadRaw(path string) (*Config, error) {
+	cfg, err := read(path)
+	if err != nil {
+		return nil, err
+	}
+	applyDefaults(cfg)
+	if err := validate(cfg); err != nil {
+		return nil, fmt.Errorf("配置 %s 校验失败: %w", path, err)
+	}
+	return cfg, nil
+}
+
+// read 读取并解析配置文件 YAML，供 Load / LoadRaw 复用。
+func read(path string) (*Config, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("读取配置 %s: %w", path, err)
@@ -54,12 +87,6 @@ func Load(path string) (*Config, error) {
 	var cfg Config
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
 		return nil, fmt.Errorf("解析配置 %s: %w", path, err)
-	}
-	if err := normalize(&cfg); err != nil {
-		return nil, fmt.Errorf("配置 %s 归一化失败: %w", path, err)
-	}
-	if err := validate(&cfg); err != nil {
-		return nil, fmt.Errorf("配置 %s 校验失败: %w", path, err)
 	}
 	return &cfg, nil
 }
@@ -79,26 +106,37 @@ func Save(path string, cfg *Config) error {
 	return nil
 }
 
-// normalize 填充默认值并对 params 字符串值做 ${VAR} 插值。
-func normalize(cfg *Config) error {
+// applyDefaults 填充默认值：空 type 置为 conn.ConnTypeTCP。
+func applyDefaults(cfg *Config) {
 	for i := range cfg.DB {
-		if err := normalizeEntry(&cfg.DB[i]); err != nil {
+		if cfg.DB[i].Type == "" {
+			cfg.DB[i].Type = conn.ConnTypeTCP
+		}
+	}
+	for i := range cfg.Redis {
+		if cfg.Redis[i].Type == "" {
+			cfg.Redis[i].Type = conn.ConnTypeTCP
+		}
+	}
+}
+
+// interpolateAll 对 params 字符串值做 ${VAR} 插值。
+func interpolateAll(cfg *Config) error {
+	for i := range cfg.DB {
+		if err := interpolateEntry(&cfg.DB[i]); err != nil {
 			return fmt.Errorf("db 第 %d 条: %w", i, err)
 		}
 	}
 	for i := range cfg.Redis {
-		if err := normalizeEntry(&cfg.Redis[i]); err != nil {
+		if err := interpolateEntry(&cfg.Redis[i]); err != nil {
 			return fmt.Errorf("redis 第 %d 条: %w", i, err)
 		}
 	}
 	return nil
 }
 
-// normalizeEntry 把空 type 置为 conn.ConnTypeTCP，并对 params 字符串值做插值。
-func normalizeEntry(e *Entry) error {
-	if e.Type == "" {
-		e.Type = conn.ConnTypeTCP
-	}
+// interpolateEntry 对 entry 的 params 字符串值做 ${VAR} 插值。
+func interpolateEntry(e *Entry) error {
 	for k, v := range e.Params {
 		s, ok := v.(string)
 		if !ok {

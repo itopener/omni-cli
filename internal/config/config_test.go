@@ -131,6 +131,32 @@ db:
 	}
 }
 
+// TestLoadRawSkipsInterpolation 回归：LoadRaw 保留 ${VAR} 字面量，但默认 type 填充仍生效。
+func TestLoadRawSkipsInterpolation(t *testing.T) {
+	t.Setenv("FOO", "x")
+	path := writeTemp(t, `version: 1
+db:
+  - key: orders
+    env: dev
+    params:
+      host: 127.0.0.1
+      port: 3306
+      user: root
+      password: ${FOO}
+`)
+	cfg, err := LoadRaw(path)
+	if err != nil {
+		t.Fatalf("LoadRaw 意外错误: %v", err)
+	}
+	e := cfg.DB[0]
+	if got := e.Params["password"]; got != "${FOO}" {
+		t.Errorf("password = %v, 期望字面量 ${FOO}", got)
+	}
+	if got := e.Type; got != conn.ConnTypeTCP {
+		t.Errorf("Type = %q, 期望 %q", got, conn.ConnTypeTCP)
+	}
+}
+
 func TestLoadUnsetEnvVarErrors(t *testing.T) {
 	const name = "OMNI_CLI_UNSET_VAR_FOR_TEST"
 	os.Unsetenv(name)

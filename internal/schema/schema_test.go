@@ -55,6 +55,38 @@ func TestBuildFixedNoDriver(t *testing.T) {
 	}
 }
 
+// TestCommandSchemaJSONFixedKeys 回归：固定项字段的说明 JSON key 与参数字段一致，统一为 description。
+func TestCommandSchemaJSONFixedKeys(t *testing.T) {
+	s, err := Build(false)
+	if err != nil {
+		t.Fatalf("Build(false) 意外错误: %v", err)
+	}
+	data, err := json.Marshal(s)
+	if err != nil {
+		t.Fatalf("Marshal 意外错误: %v", err)
+	}
+	var top map[string]any
+	if err := json.Unmarshal(data, &top); err != nil {
+		t.Fatalf("Unmarshal 意外错误: %v", err)
+	}
+	fixed, ok := top["fixed"].([]any)
+	if !ok || len(fixed) == 0 {
+		t.Fatalf("fixed 应为非空数组, 实际 %#v", top["fixed"])
+	}
+	first, ok := fixed[0].(map[string]any)
+	if !ok {
+		t.Fatalf("fixed 字段类型 = %T, 期望 map", fixed[0])
+	}
+	for _, k := range []string{"name", "description", "required"} {
+		if _, ok := first[k]; !ok {
+			t.Errorf("fixed 字段缺少 JSON key %q。实际 keys: %v", k, mapKeys(first))
+		}
+	}
+	if _, ok := first["desc"]; ok {
+		t.Errorf("fixed 字段不应再有 JSON key %q，应与参数字段统一为 description", "desc")
+	}
+}
+
 func TestCommandSchemaJSONParamKeysLowercase(t *testing.T) {
 	s, err := Build(false)
 	if err != nil {

@@ -40,7 +40,7 @@ func newConfigCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "config",
 		Short: "管理全局配置（~/.omni-cli/config.yaml）",
-		Long: `管理 omni-cli 的全局配置文件（默认 ~/.omni-cli/config.yaml，可用 --config 覆盖）。
+		Long: `管理 omni-cli 的全局配置文件（默认 ~/.omni-cli/config.yaml，可用 --config 或 OMNI_CLI_CONFIG 覆盖）。
 
 配置层级：命令类型（db / redis）→ 条目列表；每条 entry 由 key + env 复合唯一定位。
 固定项 key / env / type（db 另加 driver），其余连接字段进 params。
@@ -122,7 +122,7 @@ func newConfigPathCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:     "path",
 		Short:   "打印配置文件路径",
-		Long:    `打印生效的配置文件路径：--config 指定时用该值，否则打印默认路径 ~/.omni-cli/config.yaml。`,
+		Long:    `打印生效的配置文件路径：--config 优先，其次 OMNI_CLI_CONFIG，最后默认路径 ~/.omni-cli/config.yaml。`,
 		Example: `  omni-cli config path`,
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -191,7 +191,7 @@ func runConfigAdd(cmd *cobra.Command, section, key, env, typ, driver string, par
 		return err
 	}
 
-	cfg, path, err := loadConfig()
+	cfg, path, err := loadConfigRaw()
 	if err != nil {
 		return err
 	}
@@ -245,7 +245,7 @@ func runConfigSet(cmd *cobra.Command, section, key, env, typ, driver string, par
 	if env == "" {
 		return fmt.Errorf("缺少 --env，例如 omni-cli config set %s --key orders --env dev", section)
 	}
-	cfg, path, err := loadConfig()
+	cfg, path, err := loadConfigRaw()
 	if err != nil {
 		return err
 	}
@@ -316,7 +316,7 @@ func runConfigRemove(cmd *cobra.Command, section, key, env string) error {
 	if env == "" {
 		return fmt.Errorf("缺少 --env，例如 omni-cli config remove %s --key orders --env dev", section)
 	}
-	cfg, path, err := loadConfig()
+	cfg, path, err := loadConfigRaw()
 	if err != nil {
 		return err
 	}
@@ -480,21 +480,25 @@ func runConfigSchema(cmd *cobra.Command, section string) error {
 	return nil
 }
 
-// resolveConfigPath 返回生效的配置文件路径：优先 --config，否则默认路径。
-func resolveConfigPath() (string, error) {
-	if configPath != "" {
-		return configPath, nil
-	}
-	return config.DefaultPath()
+// loadConfig 加载配置文件（做 ${VAR} 插值）；文件不存在时返回空的 version:1 配置，便于首次 add 前免 init。
+func loadConfig() (*config.Config, string, error) {
+	return loadConfigWith(config.Load)
 }
 
-// loadConfig 加载配置文件；文件不存在时返回空的 version:1 配置，便于首次 add 前免 init。
-func loadConfig() (*config.Config, string, error) {
+// loadConfigRaw 加载配置文件（不做 ${VAR} 插值，保留字面量）；文件不存在时返回空的 version:1 配置。
+//
+// add/set/remove 用它，避免把插值后的明文 secret 写回文件。
+func loadConfigRaw() (*config.Config, string, error) {
+	return loadConfigWith(config.LoadRaw)
+}
+
+// loadConfigWith 用 load 加载配置；文件不存在时返回空的 version:1 配置。
+func loadConfigWith(load func(string) (*config.Config, error)) (*config.Config, string, error) {
 	path, err := resolveConfigPath()
 	if err != nil {
 		return nil, "", err
 	}
-	cfg, err := config.Load(path)
+	cfg, err := load(path)
 	if err == nil {
 		return cfg, path, nil
 	}
@@ -552,7 +556,7 @@ func parseParams(params []string) (map[string]any, error) {
 			return nil, fmt.Errorf("--param 需为 k=v 形式，实际 %q", p)
 		}
 		if k == "" {
-			return nil, fmt.Errorf("--param 的 key 不能为空：%q", p)
+			return nil, fmt.Errorf("--param 需为 k=v 形式（key 不能为空）")
 		}
 		out[k] = v
 	}

@@ -70,6 +70,18 @@ func TestParseParams(t *testing.T) {
 	}
 }
 
+// TestParseParamsEmptyKeyDoesNotEchoValue 回归：key 为空时错误信息不得回显参数值（secret 泄漏）。
+func TestParseParamsEmptyKeyDoesNotEchoValue(t *testing.T) {
+	const secret = "hunter2"
+	_, err := parseParams([]string{"=" + secret})
+	if err == nil {
+		t.Fatal("key 为空期望报错，实际成功")
+	}
+	if strings.Contains(err.Error(), secret) {
+		t.Errorf("错误信息 %q 不应包含参数值 %q", err.Error(), secret)
+	}
+}
+
 func TestMaskParams(t *testing.T) {
 	in := map[string]any{"host": "127.0.0.1", "password": "s3cret", "api_token": "tok", "user": "root"}
 	got := maskParams(in)
@@ -183,6 +195,30 @@ func TestConfigSetUpdates(t *testing.T) {
 	}
 	if e.Params["host"] != "127.0.0.1" {
 		t.Errorf("未覆盖的 host 应保留，实际 %v", e.Params["host"])
+	}
+}
+
+// TestConfigSetPreservesEnvVarIndirection 回归：set 改写条目不得把 ${FOO} 展开成明文写回。
+func TestConfigSetPreservesEnvVarIndirection(t *testing.T) {
+	path := setTestConfig(t)
+	t.Setenv("FOO", "resolved-secret")
+	if _, err := runConfigCmd(t, "add", "db", "--key", "orders", "--env", "dev", "--driver", "mysql",
+		"--param", "host=127.0.0.1", "--param", "port=3306", "--param", "password=${FOO}"); err != nil {
+		t.Fatalf("add 意外错误: %v", err)
+	}
+	if _, err := runConfigCmd(t, "set", "db", "--key", "orders", "--env", "dev",
+		"--param", "host=10.0.0.2"); err != nil {
+		t.Fatalf("set 意外错误: %v", err)
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("读取配置失败: %v", err)
+	}
+	if !strings.Contains(string(data), "${FOO}") {
+		t.Errorf("配置应保留字面量 ${FOO}，实际:\n%s", string(data))
+	}
+	if strings.Contains(string(data), "resolved-secret") {
+		t.Errorf("配置不应写入插值后的明文，实际:\n%s", string(data))
 	}
 }
 

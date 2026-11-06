@@ -53,7 +53,11 @@ func runRedis(cmd *cobra.Command, env, key, format, timeout string, args []strin
 		return fmt.Errorf("解析 --timeout %q: %w", timeout, err)
 	}
 
-	cfg, err := config.Load(configPath)
+	path, err := resolveConfigPath()
+	if err != nil {
+		return err
+	}
+	cfg, err := config.Load(path)
 	if err != nil {
 		return err
 	}
@@ -96,7 +100,11 @@ func newRedisListCmd() *cobra.Command {
 
 // runRedisList 加载配置并列出 redis 条目；配置为空时报清晰错误。
 func runRedisList(cmd *cobra.Command) error {
-	cfg, err := config.Load(configPath)
+	path, err := resolveConfigPath()
+	if err != nil {
+		return err
+	}
+	cfg, err := config.Load(path)
 	if err != nil {
 		return err
 	}

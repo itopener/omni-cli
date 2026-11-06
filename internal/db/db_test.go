@@ -1,6 +1,7 @@
 package db
 
 import (
+	"reflect"
 	"strings"
 	"testing"
 
@@ -128,5 +129,27 @@ func TestIsKnownDriver(t *testing.T) {
 		if got := IsKnownDriver(tt.d); got != tt.want {
 			t.Errorf("IsKnownDriver(%q) = %v, 期望 %v", tt.d, got, tt.want)
 		}
+	}
+}
+
+// TestNormalizeRow 回归：扫描得到的 []byte 归一化为 string，避免 JSON 输出 base64；nil 保持 nil。
+func TestNormalizeRow(t *testing.T) {
+	tests := []struct {
+		name string
+		in   []any
+		want []any
+	}{
+		{name: "[]byte 转 string", in: []any{[]byte("hello")}, want: []any{"hello"}},
+		{name: "nil 保持 nil", in: []any{nil}, want: []any{nil}},
+		{name: "nil []byte 转 nil", in: []any{[]byte(nil)}, want: []any{nil}},
+		{name: "混合类型", in: []any{int64(1), []byte("a"), nil, 2.5}, want: []any{int64(1), "a", nil, 2.5}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			normalizeRow(tt.in)
+			if !reflect.DeepEqual(tt.in, tt.want) {
+				t.Errorf("normalizeRow() = %#v, 期望 %#v", tt.in, tt.want)
+			}
+		})
 	}
 }

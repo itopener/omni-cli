@@ -3,6 +3,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/spf13/cobra"
 
@@ -15,6 +16,8 @@ const (
 	formatTable    = "table"
 	formatJSON     = "json"
 	defaultTimeout = "30s"
+	// configEnvVar 是配置文件路径的环境变量覆盖名（等价 --config）。
+	configEnvVar = "OMNI_CLI_CONFIG"
 )
 
 // configPath 是 --config 持久 flag 绑定的变量，各子命令统一读取。
@@ -31,7 +34,7 @@ v1 提供以下子命令：
   db     按 key/env 解析数据库连接，执行 SQL，输出对齐表格或 JSON
   redis  按 key/env 解析 redis 连接，原样透传命令参数，输出结果
 
-连接信息来自全局配置文件（默认 ~/.omni-cli/config.yaml，可用 --config 覆盖）。
+连接信息来自全局配置文件（默认 ~/.omni-cli/config.yaml，可用 --config 或 OMNI_CLI_CONFIG 覆盖）。
 详情见各子命令的 --help。`,
 	Example: `  omni-cli config init
   omni-cli config add db --key orders --env dev --driver mysql --param host=127.0.0.1
@@ -47,17 +50,19 @@ func Execute() error {
 }
 
 func init() {
-	rootCmd.PersistentFlags().StringVar(&configPath, "config", defaultConfigPath(), "配置文件路径（默认 ~/.omni-cli/config.yaml）")
+	rootCmd.PersistentFlags().StringVar(&configPath, "config", "", "配置文件路径（默认 ~/.omni-cli/config.yaml，可用 OMNI_CLI_CONFIG 覆盖）")
 	rootCmd.AddCommand(newDBCmd(), newRedisCmd(), newConfigCmd())
 }
 
-// defaultConfigPath 返回默认配置路径；获取主目录失败时返回空串，由 config.Load 报清晰错误。
-func defaultConfigPath() string {
-	p, err := config.DefaultPath()
-	if err != nil {
-		return ""
+// resolveConfigPath 返回生效的配置文件路径：--config 优先，其次 OMNI_CLI_CONFIG，最后默认路径。
+func resolveConfigPath() (string, error) {
+	if configPath != "" {
+		return configPath, nil
 	}
-	return p
+	if env := os.Getenv(configEnvVar); env != "" {
+		return env, nil
+	}
+	return config.DefaultPath()
 }
 
 // resolveTCP 按 entry.Type 解析 params，并断言为 *conn.TCPParams。
