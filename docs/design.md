@@ -128,6 +128,7 @@ redis:
 - **db**：只允许读语句（首关键字白名单 `SELECT` / `SHOW` / `DESCRIBE` / `DESC` / `EXPLAIN`）；其它（INSERT/UPDATE/DELETE/DDL 等）报错「只读连接禁止写操作，需设 `readonly: false`」。
 - **redis**：只允许读命令白名单（`GET`/`MGET`/`HGET*`/`LRANGE`/`SMEMBERS`/`ZRANGE*`/`EXISTS`/`TTL`/`SCAN`/`KEYS` 等）；白名单外的命令（`SET`/`DEL`/`EVAL`/`FLUSHALL` 等）拦截。
 - **默认拒绝**：未列出的语句/命令一律按写处理，宁可误拦不可漏放。
+- **局限**：白名单按首关键字判断，`SELECT ... INTO OUTFILE`、`SELECT nextval(...)`、volatile 函数等服务端写会判为读，靠 DB 账号权限兜底。
 - 多语句 SQL 由驱动默认禁用（go-sql-driver `multiStatements=false`、pgx 单语句），不会绕过首关键字检查。
 
 要写数据：`config set db --key orders --env dev --readonly=false`（或 `config add ... --readonly=false`）。
