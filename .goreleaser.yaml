@@ -1,0 +1,18 @@
+version: 2
+project_name: omni-cli
+builds:
+  - main: ./cmd/omni-cli
+    binary: omni-cli
+    goos: [darwin, linux, windows]
+    goarch: [amd64, arm64]
+    ldflags: ["-s -w -X main.version={{.Version}}"]
+archives:
+  - formats: [tar.gz]
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+checksum:
+  name_template: "checksums.txt"
+  algorithm: sha256
+release:
+  github:
+    owner: itopener
+    name: omni-cli
