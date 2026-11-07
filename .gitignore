@@ -1,0 +1,19 @@
+# Binaries and test artifacts
+*.exe
+*.test
+*.out
+omni-cli
+dist/
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local secrets — never commit real config with credentials
+*.local.yaml
+*.local.yml
+.env

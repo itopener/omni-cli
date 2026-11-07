@@ -2,6 +2,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -9,6 +10,7 @@ import (
 
 	"omni-cli/internal/config"
 	"omni-cli/internal/conn"
+	"omni-cli/internal/sshtunnel"
 )
 
 // 输出格式取值与超时默认值，集中定义避免魔法值散落。
@@ -23,9 +25,9 @@ const (
 // configPath 是 --config 持久 flag 绑定的变量，各子命令统一读取。
 var configPath string
 
-// version 是当前版本号，默认 dev，构建时可用
+// version 是当前版本号，默认初始版本 0.0.1，构建时可用
 // -ldflags "-X main.version=v1.0.0" 注入（main 包符号名固定为 main）。
-var version = "dev"
+var version = "0.0.1"
 
 // rootCmd 是 omni-cli 根命令，挂载持久 flag --config 与 db / redis 子命令。
 var rootCmd = &cobra.Command{
@@ -96,4 +98,20 @@ func resolveTCP(entry *config.Entry) (*conn.TCPParams, error) {
 		return nil, fmt.Errorf("连接类型 %q 解析结果类型错误，期望 *conn.TCPParams", entry.Type)
 	}
 	return tcp, nil
+}
+
+// openConn 解析连接参数并按需建立 ssh 隧道。
+//
+// 无 ssh_host 时直连，返回原参数与空操作 closeFn；有 ssh_host 时经 sshtunnel
+// 建立跳板机转发，返回本地转发地址参数，closeFn 关闭隧道（幂等）。
+// 调用方需 defer closeFn，且 ctx 应带超时以约束 ssh 拨号与握手。
+func openConn(ctx context.Context, entry *config.Entry) (*conn.TCPParams, func() error, error) {
+	tcp, err := resolveTCP(entry)
+	if err != nil {
+		return nil, nil, err
+	}
+	if tcp.SSHHost == "" {
+		return tcp, func() error { return nil }, nil
+	}
+	return sshtunnel.Open(ctx, tcp)
 }

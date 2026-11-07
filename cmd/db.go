@@ -20,6 +20,7 @@ func newDBCmd() *cobra.Command {
 		Short: "执行 SQL 查询并输出结果",
 		Long: `按 key/env 从配置解析数据库连接（type=tcp，driver=mysql|postgres），执行一条 SQL 并输出对齐表格（默认）或 JSON。
 
+params 含 ssh_host 时经 ssh 隧道访问目标（host:port 为跳板机视角地址，ssh_port 默认 22）。
 SQL 可用 --sql 传入，或作为位置参数给出；两者都省略时报错。
 无结果集（非 SELECT）时输出 Executed OK。`,
 		Example: `  omni-cli db -k orders -e dev --sql "SELECT count(*) FROM users"
@@ -70,13 +71,15 @@ func runDB(cmd *cobra.Command, env, key, format, sqlStr, timeout string, args []
 	if entry.IsReadOnly() && db.IsWriteStatement(sqlStr) {
 		return fmt.Errorf("只读连接禁止写操作；如需写请先执行 config set db --key %s --env %s --readonly=false", entry.Key, entry.Env)
 	}
-	tcp, err := resolveTCP(entry)
-	if err != nil {
-		return err
-	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), d)
 	defer cancel()
+
+	tcp, closeConn, err := openConn(ctx, entry)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = closeConn() }()
 
 	res, err := db.Query(ctx, db.Driver(entry.Driver), tcp, sqlStr)
 	if err != nil {

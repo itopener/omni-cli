@@ -90,13 +90,14 @@ func unknownDriverError(d Driver) error {
 func DSN(d Driver, p *conn.TCPParams) (string, error) {
 	switch d {
 	case DriverMySQL:
-		cfg := mysql.Config{
-			User:   p.User,
-			Passwd: p.Password,
-			Net:    "tcp",
-			Addr:   net.JoinHostPort(p.Host, strconv.Itoa(p.Port)),
-			DBName: p.Database,
-		}
+		// NewConfig 给驱动默认值（AllowNativePasswords 等）；零值 Config 会
+		// 拒绝 mysql_native_password 认证，老账号连不上。
+		cfg := mysql.NewConfig()
+		cfg.User = p.User
+		cfg.Passwd = p.Password
+		cfg.Net = "tcp"
+		cfg.Addr = net.JoinHostPort(p.Host, strconv.Itoa(p.Port))
+		cfg.DBName = p.Database
 		return cfg.FormatDSN(), nil
 	case DriverPostgres:
 		// 密码/用户名必须 URL 编码，避免 @ : / 等字符破坏 DSN。

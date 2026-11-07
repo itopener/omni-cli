@@ -154,11 +154,15 @@ func newConfigAddCmd() *cobra.Command {
 位置参数为命令类型：db 或 redis。--key + --env 在同一类型内复合唯一，重复时报错。
 db 需 --driver（mysql | postgres）；redis 不需要 driver。
 --type 为连接方式（v1 仅 tcp，默认 tcp）；其余连接字段用可重复的 --param k=v 传入。
+tcp 支持可选 ssh 隧道参数：ssh_host / ssh_port（默认 22）/ ssh_user / ssh_password。
 --readonly 为只读保护（默认 true，写操作被拦截；设为 false 允许写）。`,
 		Example: `  omni-cli config add db --key orders --env dev --driver mysql \
     --param host=127.0.0.1 --param port=3306 --param user=root \
     --param password='${DEV_DB_PASS}' --param database=orders
-  omni-cli config add redis --key cache --env dev --param host=127.0.0.1 --param port=6379`,
+  omni-cli config add redis --key cache --env dev --param host=127.0.0.1 --param port=6379
+  omni-cli config add db --key orders --env prod --driver mysql \
+    --param host=10.0.0.7 --param port=3306 --param ssh_host=jump.example.com \
+    --param ssh_user=jump --param ssh_password='${JUMP_PASS}'`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runConfigAdd(cmd, args[0], key, env, typ, driver, readonly, params)

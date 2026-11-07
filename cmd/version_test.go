@@ -15,8 +15,8 @@ func TestVersionOutput(t *testing.T) {
 		args    []string
 		version string
 	}{
-		{name: "flag 默认版本", args: []string{"--version"}, version: "dev"},
-		{name: "子命令 默认版本", args: []string{"version"}, version: "dev"},
+		{name: "flag 默认版本", args: []string{"--version"}, version: "0.0.1"},
+		{name: "子命令 默认版本", args: []string{"version"}, version: "0.0.1"},
 		{name: "flag 注入版本", args: []string{"--version"}, version: "v1.2.3-test"},
 		{name: "子命令 注入版本", args: []string{"version"}, version: "v1.2.3-test"},
 	}

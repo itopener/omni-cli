@@ -21,6 +21,7 @@ func newRedisCmd() *cobra.Command {
 		Short: "执行 redis 命令",
 		Long: `按 key/env 从配置解析 redis 连接（type=tcp），把位置参数原样透传给 redis 执行并输出结果。
 
+params 含 ssh_host 时经 ssh 隧道访问目标（host:port 为跳板机视角地址，ssh_port 默认 22）。
 例如 GET / SET / INCR 等命令。默认直接打印返回值，-f json 输出 JSON。`,
 		Example: `  omni-cli redis -k cache -e dev GET user:1
   omni-cli redis -k cache -e dev SET k v
@@ -68,13 +69,15 @@ func runRedis(cmd *cobra.Command, env, key, format, timeout string, args []strin
 	if entry.IsReadOnly() && redis.IsWriteCommand(args) {
 		return fmt.Errorf("只读连接禁止写操作；如需写请先执行 config set redis --key %s --env %s --readonly=false", entry.Key, entry.Env)
 	}
-	tcp, err := resolveTCP(entry)
-	if err != nil {
-		return err
-	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), d)
 	defer cancel()
+
+	tcp, closeConn, err := openConn(ctx, entry)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = closeConn() }()
 
 	val, err := redis.Exec(ctx, tcp, args)
 	if err != nil {

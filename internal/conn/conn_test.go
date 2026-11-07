@@ -103,6 +103,54 @@ func TestResolveUnknownType(t *testing.T) {
 	}
 }
 
+func TestResolveTCPSSHParams(t *testing.T) {
+	gotAny, err := Resolve(ConnTypeTCP, map[string]any{
+		"host":         "10.0.0.7",
+		"port":         3306,
+		"ssh_host":     "118.25.224.192",
+		"ssh_port":     "22",
+		"ssh_user":     "jump",
+		"ssh_password": "secret",
+	})
+	if err != nil {
+		t.Fatalf("Resolve(tcp, ssh 参数) 意外错误: %v", err)
+	}
+	got, ok := gotAny.(*TCPParams)
+	if !ok {
+		t.Fatalf("Resolve(tcp, ssh 参数) = %T, 期望 *TCPParams", gotAny)
+	}
+	if got.SSHHost != "118.25.224.192" || got.SSHPort != 22 ||
+		got.SSHUser != "jump" || got.SSHPassword != "secret" {
+		t.Errorf("ssh 字段 = %+v, 期望 SSHHost=118.25.224.192 SSHPort=22 SSHUser=jump", got)
+	}
+}
+
+func TestResolveTCPSSHParamsAbsent(t *testing.T) {
+	gotAny, err := Resolve(ConnTypeTCP, map[string]any{"host": "127.0.0.1", "port": 3306})
+	if err != nil {
+		t.Fatalf("Resolve(tcp, 无 ssh 参数) 意外错误: %v", err)
+	}
+	got := gotAny.(*TCPParams)
+	if got.SSHHost != "" || got.SSHPort != 0 || got.SSHUser != "" || got.SSHPassword != "" {
+		t.Errorf("无 ssh 参数时 ssh 字段应为零值，实际 %+v", got)
+	}
+}
+
+func TestResolveTCPNonNumericSSHPort(t *testing.T) {
+	_, err := Resolve(ConnTypeTCP, map[string]any{
+		"host":     "127.0.0.1",
+		"port":     3306,
+		"ssh_host": "j.example.com",
+		"ssh_port": "abc",
+	})
+	if err == nil {
+		t.Fatal("期望非数字 ssh_port 报错，实际成功")
+	}
+	if !strings.Contains(err.Error(), "ssh_port") {
+		t.Errorf("错误信息 %q 应包含 \"ssh_port\"", err.Error())
+	}
+}
+
 func TestSchemaTCP(t *testing.T) {
 	fields, err := Schema(ConnTypeTCP)
 	if err != nil {
@@ -117,5 +165,15 @@ func TestSchemaTCP(t *testing.T) {
 	}
 	if !required["port"] {
 		t.Errorf("schema 应包含 port 且 Required=true，实际 %v", required["port"])
+	}
+	for _, name := range []string{"ssh_host", "ssh_port", "ssh_user", "ssh_password"} {
+		got, ok := required[name]
+		if !ok {
+			t.Errorf("schema 应包含可选字段 %s", name)
+			continue
+		}
+		if got {
+			t.Errorf("字段 %s 应为 Required=false", name)
+		}
 	}
 }

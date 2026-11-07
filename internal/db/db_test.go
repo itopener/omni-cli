@@ -51,6 +51,35 @@ func TestDSNMySQLEscapesSpecialChars(t *testing.T) {
 	}
 }
 
+// 回归：DSN 解析后必须允许 mysql_native_password 认证。
+// 零值 mysql.Config 会静默禁用它，老账号（native password）全部连不上。
+func TestDSNMySQLAllowsNativePassword(t *testing.T) {
+	tests := []struct {
+		name string
+		p    *conn.TCPParams
+	}{
+		{
+			name: "基本",
+			p:    &conn.TCPParams{Host: "h", Port: 3306, User: "u", Password: "p", Database: "d"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsn, err := DSN(DriverMySQL, tt.p)
+			if err != nil {
+				t.Fatalf("DSN(mysql) 意外错误: %v", err)
+			}
+			cfg, err := mysql.ParseDSN(dsn)
+			if err != nil {
+				t.Fatalf("mysql.ParseDSN(%q) 意外错误: %v", dsn, err)
+			}
+			if !cfg.AllowNativePasswords {
+				t.Errorf("ParseDSN.AllowNativePasswords = false, 期望 true（DSN=%q）", dsn)
+			}
+		})
+	}
+}
+
 func TestDSNPostgres(t *testing.T) {
 	tests := []struct {
 		name string
