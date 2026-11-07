@@ -21,7 +21,7 @@
 
 ## 当前阶段
 
-v1 只做 `db` + `redis` 两个命令类型，只支持直连（`type: tcp`）。
+v1 只做 `db` + `redis` 两个命令类型，连接方式为直连 tcp + 可选 ssh 隧道（`type: tcp`；params 的 `ssh_host` / `ssh_port` / `ssh_user` / `ssh_password` 非空 `ssh_host` 即启用，仅密码认证、不校验跳板机主机密钥）。
 
 - 配置层级：命令类型 → 条目列表；每条 entry 由 `key` + `env` 复合唯一定位。
 - 固定项只有 `key` / `env` / `type`（db 再加 `driver`），其余全部进 `params`，字段集由 `type` 决定。
