@@ -8,9 +8,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"omni-cli/internal/config"
-	"omni-cli/internal/conn"
-	"omni-cli/internal/sshtunnel"
+	"github.com/itopener/omni-cli/internal/config"
+	"github.com/itopener/omni-cli/internal/conn"
+	"github.com/itopener/omni-cli/internal/sshtunnel"
 )
 
 // 输出格式取值与超时默认值，集中定义避免魔法值散落。

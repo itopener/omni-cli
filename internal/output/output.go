@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"strings"
 
-	"omni-cli/internal/db"
+	"github.com/itopener/omni-cli/internal/db"
 )
 
 // colSep 是表格列间的分隔符（两个空格，保证对齐且可读）。

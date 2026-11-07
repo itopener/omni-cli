@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"omni-cli/internal/conn"
+	"github.com/itopener/omni-cli/internal/conn"
 )
 
 // names 提取字段名列表，便于断言 Fixed 的顺序与内容。

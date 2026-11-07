@@ -7,8 +7,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"omni-cli/internal/config"
-	"omni-cli/internal/conn"
+	"github.com/itopener/omni-cli/internal/config"
+	"github.com/itopener/omni-cli/internal/conn"
 )
 
 // TestRunDBReadonlyGuard 回归：db 守卫接线——只读写操作在 resolveTCP/建连前拦截，可写条目放行。

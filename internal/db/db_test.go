@@ -8,7 +8,7 @@ import (
 	"github.com/go-sql-driver/mysql"
 	"github.com/jackc/pgx/v5"
 
-	"omni-cli/internal/conn"
+	"github.com/itopener/omni-cli/internal/conn"
 )
 
 func TestDSNMySQL(t *testing.T) {

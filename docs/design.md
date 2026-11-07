@@ -248,11 +248,12 @@ type Resolver interface {
 ```
 omni-cli/
   cmd/
-    root.go            # cobra root，全局 flag（--config）
-    db.go              # db 子命令
-    redis.go           # redis 子命令
-    config.go          # config 管理子命令
-    main.go
+    omni-cli/
+      root.go            # cobra root，全局 flag（--config）
+      db.go              # db 子命令
+      redis.go           # redis 子命令
+      config.go          # config 管理子命令
+      main.go
   internal/
     config/            # 配置加载、校验、${VAR} 插值、读改写、条目解析
     conn/              # ConnType + params 结构 + resolver 注册表（叶子包）

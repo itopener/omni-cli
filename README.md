@@ -47,7 +47,7 @@ shasum -a 256 -c checksums.txt   # Linux 上用 sha256sum -c checksums.txt
 ```sh
 git clone https://github.com/itopener/omni-cli.git
 cd omni-cli
-go build -o omni-cli ./cmd
+go build -o omni-cli ./cmd/omni-cli
 ```
 
 ## 快速开始

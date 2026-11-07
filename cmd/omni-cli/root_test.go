@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"omni-cli/internal/config"
+	"github.com/itopener/omni-cli/internal/config"
 )
 
 // TestResolveConfigPathPrecedence 回归：配置路径解析优先级为 --config > OMNI_CLI_CONFIG > 默认路径。

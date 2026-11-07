@@ -7,9 +7,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"omni-cli/internal/config"
-	"omni-cli/internal/db"
-	"omni-cli/internal/output"
+	"github.com/itopener/omni-cli/internal/config"
+	"github.com/itopener/omni-cli/internal/db"
+	"github.com/itopener/omni-cli/internal/output"
 )
 
 // newDBCmd 构造 db 子命令：执行 SQL 并输出结果。

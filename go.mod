@@ -1,4 +1,4 @@
-module omni-cli
+module github.com/itopener/omni-cli
 
 go 1.22
 

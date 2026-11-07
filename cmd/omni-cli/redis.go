@@ -7,10 +7,10 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"omni-cli/internal/config"
-	"omni-cli/internal/db"
-	"omni-cli/internal/output"
-	"omni-cli/internal/redis"
+	"github.com/itopener/omni-cli/internal/config"
+	"github.com/itopener/omni-cli/internal/db"
+	"github.com/itopener/omni-cli/internal/output"
+	"github.com/itopener/omni-cli/internal/redis"
 )
 
 // newRedisCmd 构造 redis 子命令：原样透传命令参数并输出结果。

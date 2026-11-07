@@ -18,7 +18,7 @@ import (
 	// pgx 顶层包不会自动注册 driver，此处空白导入 stdlib 使 sql.Open("pgx", dsn) 可解析。
 	_ "github.com/jackc/pgx/v5/stdlib"
 
-	"omni-cli/internal/conn"
+	"github.com/itopener/omni-cli/internal/conn"
 )
 
 // Driver 标识一种数据库驱动。

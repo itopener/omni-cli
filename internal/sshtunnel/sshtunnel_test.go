@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"omni-cli/internal/conn"
-	"omni-cli/internal/sshtunnel/sshtest"
+	"github.com/itopener/omni-cli/internal/conn"
+	"github.com/itopener/omni-cli/internal/sshtunnel/sshtest"
 )
 
 // tunnelParams 构造带 ssh 隧道的连接参数。

@@ -20,7 +20,7 @@ import (
 
 	"golang.org/x/crypto/ssh"
 
-	"omni-cli/internal/conn"
+	"github.com/itopener/omni-cli/internal/conn"
 )
 
 // errTunnelClosed 由重复 Close 返回，调用方可用 errors.Is 判断。

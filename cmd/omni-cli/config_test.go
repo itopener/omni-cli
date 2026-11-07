@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"omni-cli/internal/config"
+	"github.com/itopener/omni-cli/internal/config"
 )
 
 // setTestConfig 把 configPath 指向临时目录下的 config.yaml，测试后还原。

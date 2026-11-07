@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"omni-cli/internal/config"
-	"omni-cli/internal/conn"
-	"omni-cli/internal/sshtunnel/sshtest"
+	"github.com/itopener/omni-cli/internal/config"
+	"github.com/itopener/omni-cli/internal/conn"
+	"github.com/itopener/omni-cli/internal/sshtunnel/sshtest"
 )
 
 // TestOpenConnDirect 回归：无 ssh 参数时直连，返回原参数且 closeFn 为空操作。

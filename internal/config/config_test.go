@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"omni-cli/internal/conn"
+	"github.com/itopener/omni-cli/internal/conn"
 )
 
 // writeTemp 把 content 写进临时目录下的 config.yaml，返回路径。

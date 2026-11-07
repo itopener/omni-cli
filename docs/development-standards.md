@@ -34,10 +34,10 @@ linters:
 
 ## 3. 目录结构（Go 标准布局）
 
-- `cmd/`：只放 `main` 入口和 cobra 接线，**不含业务逻辑**。
+- `cmd/omni-cli/`：只放 `main` 入口和 cobra 接线，**不含业务逻辑**。
 - `internal/`：业务逻辑，不对外暴露 API。
 - 包职责单一，禁止循环依赖。
-- 新增命令类型（如未来 `jira`）时，`cmd/` 加子命令 + `internal/` 加对应包。
+- 新增命令类型（如未来 `jira`）时，`cmd/omni-cli/` 加子命令 + `internal/` 加对应包。
 
 ## 4. 代码规范
 

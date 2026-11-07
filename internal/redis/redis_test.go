@@ -3,7 +3,7 @@ package redis
 import (
 	"testing"
 
-	"omni-cli/internal/conn"
+	"github.com/itopener/omni-cli/internal/conn"
 )
 
 func TestOptions(t *testing.T) {

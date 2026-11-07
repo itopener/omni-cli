@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"omni-cli/internal/db"
+	"github.com/itopener/omni-cli/internal/db"
 )
 
 func TestTable(t *testing.T) {

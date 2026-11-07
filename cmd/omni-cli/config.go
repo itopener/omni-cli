@@ -10,11 +10,11 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"omni-cli/internal/config"
-	"omni-cli/internal/conn"
-	"omni-cli/internal/db"
-	"omni-cli/internal/output"
-	"omni-cli/internal/schema"
+	"github.com/itopener/omni-cli/internal/config"
+	"github.com/itopener/omni-cli/internal/conn"
+	"github.com/itopener/omni-cli/internal/db"
+	"github.com/itopener/omni-cli/internal/output"
+	"github.com/itopener/omni-cli/internal/schema"
 )
 
 // config 子命令的命令类型段名与打码值，集中定义避免魔法值散落。

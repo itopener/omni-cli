@@ -7,7 +7,7 @@ package schema
 import (
 	"fmt"
 
-	"omni-cli/internal/conn"
+	"github.com/itopener/omni-cli/internal/conn"
 )
 
 // 固定项字段名，集中定义避免魔法值散落。

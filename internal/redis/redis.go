@@ -13,7 +13,7 @@ import (
 
 	goredis "github.com/redis/go-redis/v9"
 
-	"omni-cli/internal/conn"
+	"github.com/itopener/omni-cli/internal/conn"
 )
 
 // readOnlyCommands 是只读 redis 命令白名单，集中定义避免魔法值散落。
