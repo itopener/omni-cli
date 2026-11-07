@@ -278,11 +278,20 @@ omni-cli/
 - 无子进程、无 shell 依赖，天然规避 `LookPath` / argv 泄漏 / 终端差异问题。
 - Windows 终端颜色/ANSI 降级纯文本。
 
-## 发布（二期，方案已定）
+## 发布（v1.0.0 已落地）
 
-- GoReleaser：交叉编译全平台二进制 + 自动发 GitHub Releases + 生成校验和。
-- Homebrew Tap + 一键安装脚本（`curl -fsSL .../install.sh | sh`）。
-- Windows 补 Scoop / winget。
+### 已落地
+
+- **GoReleaser**：交叉编译 6 个平台产物（darwin / linux / windows × amd64 / arm64），连同 `checksums.txt` 发布到 GitHub Releases。
+- **install.sh 一键安装**：`curl -fsSL .../install.sh | sh`，自动识别平台、下载对应压缩包并**强制 sha256 校验**，校验通过才安装（支持 `--version` 指定版本）。
+- **GitHub Actions**：
+  - CI：push / PR 触发 `go vet` + `go test ./...`。
+  - Release：推送 `v*` tag 触发 GoReleaser 构建并发布。
+
+### 待做
+
+- Homebrew Tap。
+- Windows 包管理：Scoop / winget。
 
 ## 留待实现者决定
 
